@@ -95,6 +95,12 @@ The protocol requires the body of every `4xx` and `5xx` to be a `google.rpc.Stat
 problem, in the same content type as the request. An empty body, or a shape of your own invention,
 leaves the sender with only the status code to act on.
 
+Worth knowing, because the wording invites the wrong fix: the spec's Failures section calls this a
+"Protobuf-encoded Status message" under a heading that is not encoding-specific, which reads as binary
+until you notice it contradicts the same-content-type rule. Answering `application/json` with binary
+bytes cannot be what is meant, and the OpenTelemetry Collector picks its encoder from the request's
+Content-Type and marshals the Status with that. Hence both encodings here.
+
 ```csharp
 var status = new Status
 {
