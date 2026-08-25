@@ -14,6 +14,13 @@
     <RepositoryUrl>https://github.com/tripledownab/condux-otlp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The icon has to travel inside the package: PackageIconUrl is deprecated and nuget.org will not
+         render it. Packed from here so every package in the repository carries the same mark. -->
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 
 </Project>

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- The package carries an icon. No code change: 0.1.0 and 0.1.1 are the same library.
+
 ## 0.1.0
 
 - `OtlpLogs.ParseProtobuf` and `OtlpLogs.ParseJson` read an OTLP logs export in either encoding into the
