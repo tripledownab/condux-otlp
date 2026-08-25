@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Condux.Otlp.FixtureCapture</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- A captured stack trace must not carry the machine it was captured on. Rewriting the source paths
+         the compiler records keeps the fixture realistic, since a real stack does carry file and line,
+         while making it identical wherever it is captured. -->
+    <PathMap>$(MSBuildProjectDirectory)=/capture</PathMap>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The real OpenTelemetry exporter. It is here, and only here, because the point of this tool is to
+         capture bytes that something other than this repository produced. Its own dependencies never
+         reach the package. -->
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Condux.Otlp\Condux.Otlp.csproj" />
+  </ItemGroup>
+
+</Project>

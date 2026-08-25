@@ -1,0 +1,22 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+trim_trailing_whitespace = true
+
+[*.{cs,csproj,props,slnx}]
+indent_size = 4
+
+[*.{json,yml,yaml,sh,md}]
+indent_size = 2
+
+[*.cs]
+csharp_using_directive_placement = outside_namespace:error
+csharp_style_namespace_declarations = file_scoped:error
+dotnet_sort_system_directives_first = true
+# A guard clause reads better on one line than in four, and the decoders are almost entirely guard
+# clauses. Everything else keeps its braces.
+csharp_prefer_braces = when_multiline:silent

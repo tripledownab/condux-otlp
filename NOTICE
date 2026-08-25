@@ -1,0 +1,19 @@
+Condux.Otlp
+Copyright 2026 Condux
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This product reads the OpenTelemetry Protocol. Its message definitions, including every field number and
+the JSON encoding rules it follows, come from:
+
+  OpenTelemetry Protocol (OTLP) definitions
+  https://github.com/open-telemetry/opentelemetry-proto
+  Copyright The OpenTelemetry Authors
+  Licensed under the Apache License, Version 2.0
+
+The .proto files of release v1.11.0 are included unmodified under proto-reference/, so the definitions
+this package implements can be read beside it. They are not compiled.
+
+This product is not an official OpenTelemetry distribution and is not affiliated with or endorsed by the
+OpenTelemetry project or the Cloud Native Computing Foundation. OpenTelemetry is a trademark of The Linux
+Foundation.

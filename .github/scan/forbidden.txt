@@ -1,0 +1,20 @@
+# Strings that must never appear in this repository, in the tree or in a commit message.
+#
+# This repository is public from its first commit and has no staging step between a push and the world,
+# so this list is the only thing standing between a careless paste and a permanent one. Each entry is a
+# literal, matched case sensitively. Keep it to strings that cannot occur in correct content: a pattern
+# that fires on a legitimate file is a pattern somebody switches off.
+#
+# When something here fires, fix the source line. Never soften the entry to make a build pass.
+
+# The package shares a name with the maintainer's other work, so these two shapes distinguish a paste
+# from that work from a legitimate use of the name. The first fired on this scan's very first run, on an
+# environment variable added here out of habit.
+CONDUX_
+condux.ai
+
+# Absolute paths from whoever ran a build or a capture. A stack trace in a fixture is the usual way one
+# of these arrives, which is why the capture tool rewrites source paths rather than trusting review.
+/Users/
+/home/
+C:\Users

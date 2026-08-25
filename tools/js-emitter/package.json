@@ -1,0 +1,14 @@
+{
+  "name": "otlp-fixture-js-emitter",
+  "private": true,
+  "type": "module",
+  "description": "Emits one OTLP logs export through the OpenTelemetry JS SDK, whose HTTP exporter writes JSON. A second, independent implementation of the encoding, so the fixtures are not all one vendor's view of it.",
+  "dependencies": {
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/api-logs": "0.221.0",
+    "@opentelemetry/exporter-logs-otlp-http": "0.221.0",
+    "@opentelemetry/resources": "2.10.0",
+    "@opentelemetry/sdk-logs": "0.221.0",
+    "@opentelemetry/sdk-trace-base": "2.10.0"
+  }
+}

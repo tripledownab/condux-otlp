@@ -1,0 +1,30 @@
+# Fans one export out in both encodings, so the fixtures are the same records seen two ways. That pair is
+# what makes a decoder that reads trace ids as base64 fail a test instead of shipping.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlphttp/proto:
+    endpoint: http://host.docker.internal:5399/proto
+    encoding: proto
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: false
+  otlphttp/json:
+    endpoint: http://host.docker.internal:5399/json
+    encoding: json
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: false
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      # No batch processor: each export should leave immediately, so a capture run does not hang.
+      exporters: [otlphttp/proto, otlphttp/json]

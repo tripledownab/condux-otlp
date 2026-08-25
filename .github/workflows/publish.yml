@@ -1,0 +1,74 @@
+name: publish
+
+# Publishes to nuget.org. Push a tag vX.Y.Z, or run it by hand with a version to backfill one.
+#
+# A published version can never be replaced, only superseded, so the job builds and tests before it packs
+# and pushes. Nothing here is a formality.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version to publish, without the leading v
+        required: true
+      dry_run:
+        description: Pack and check, but do not push
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The OIDC token nuget.org exchanges for a short-lived key. No API key is stored anywhere.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Resolve the version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="${{ inputs.version }}"
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+          echo "publishing $version"
+
+      - run: bash .github/scan/scan.sh
+      - run: dotnet test Condux.Otlp.slnx -c Release
+
+      - name: Pack
+        run: dotnet pack src/Condux.Otlp/Condux.Otlp.csproj -c Release -p:Version="${{ steps.version.outputs.value }}" -o artifacts
+
+      - name: Confirm the package took no dependencies
+        run: bash .github/check-no-dependencies.sh artifacts/*.nupkg
+
+      # Trusted Publishing: nuget.org exchanges the OIDC token above for a key that lasts an hour, so no
+      # API key is stored in this repository.
+      - name: NuGet login (OIDC)
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to nuget.org
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+        run: >
+          dotnet nuget push "artifacts/*.nupkg"
+          --source "https://api.nuget.org/v3/index.json"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --skip-duplicate

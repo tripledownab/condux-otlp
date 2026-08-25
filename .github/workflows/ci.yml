@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          # The package targets net8.0 through net10.0, so all three runtimes have to be present for the
+          # test project to run on each of them.
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+      - run: dotnet build Condux.Otlp.slnx -c Release
+      - run: dotnet test Condux.Otlp.slnx -c Release --no-build
+      - run: dotnet format Condux.Otlp.slnx --verify-no-changes
+
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The scan covers commit messages as well as the tree, and a message is just as public and just
+          # as permanent, so the whole range being pushed has to be fetched to read them.
+          fetch-depth: 0
+      - name: Collect the commit messages under review
+        run: |
+          # Every commit being added, not just the tip: a push of five commits publishes five messages.
+          # A branch's first push reports an all-zero predecessor and has no range, so it falls back to
+          # every message reachable from HEAD.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            range="origin/${{ github.base_ref }}..HEAD"
+          elif git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
+            range="${{ github.event.before }}..${{ github.sha }}"
+          else
+            range="HEAD"
+          fi
+          echo "scanning the messages of $range"
+          git log --pretty=%B "$range" > /tmp/commit-messages.txt
+          wc -l /tmp/commit-messages.txt
+      - run: bash .github/scan/scan.sh /tmp/commit-messages.txt
+
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      # Packing on every change catches a broken package before a release does, when the only way to fix
+      # a bad version is to publish another one.
+      - run: dotnet pack src/Condux.Otlp/Condux.Otlp.csproj -c Release -o artifacts
+      - name: Confirm the package took no dependencies
+        run: bash .github/check-no-dependencies.sh artifacts/*.nupkg

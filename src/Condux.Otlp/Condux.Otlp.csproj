@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <AssemblyName>Condux.Otlp</AssemblyName>
+    <RootNamespace>Condux.Otlp</RootNamespace>
+    <PackageId>Condux.Otlp</PackageId>
+    <Description>Read OpenTelemetry Protocol (OTLP) logs payloads in .NET. Both the binary protobuf and the JSON encoding, decoded by hand with no package dependencies at all.</Description>
+    <PackageTags>opentelemetry;otlp;protobuf;logs;observability</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPackable>true</IsPackable>
+    <!-- The point of the package is that this list stays empty. Everything it needs is in the base class
+         library: System.Text.Json for the JSON encoding, System.Buffers.Binary for the fixed-width
+         protobuf fields. Adding a PackageReference here changes what the package is. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Condux.Otlp.Tests" />
+  </ItemGroup>
+
+</Project>
