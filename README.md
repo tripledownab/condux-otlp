@@ -123,6 +123,15 @@ failure legible to whoever has to fix it.
 upstream `details` field is not modelled: it is a repeated `google.protobuf.Any`, and a repeated field
 with no entries is identical on the wire to one left out.
 
+`Status` and `StatusCode` collide with `OpenTelemetry.Trace.Status` and `OpenTelemetry.Trace.StatusCode`,
+which a receiver that also uses the OpenTelemetry SDK will have in scope. The names here match the
+protocol, so alias at the point of use rather than expecting them to be unique:
+
+```csharp
+using OtlpStatus = Condux.Otlp.Status;
+using OtlpStatusCode = Condux.Otlp.StatusCode;
+```
+
 ## Reading values
 
 `AnyValue` is a `oneof`, so `Kind` says which member is set. Reading a member without checking `Kind`
