@@ -3,6 +3,10 @@
 Read OpenTelemetry Protocol (OTLP) **logs** payloads in .NET, in both encodings the protocol defines, with
 no package dependencies at all.
 
+```
+dotnet add package Condux.Otlp
+```
+
 Targets `net8.0`, `net9.0` and `net10.0`. Apache-2.0.
 
 ## Scope
