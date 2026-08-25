@@ -15,7 +15,7 @@ Targets `net8.0`, `net9.0` and `net10.0`. Apache-2.0.
 |---|---|
 | Signals | logs. Traces and metrics are not implemented |
 | Encodings | binary protobuf and JSON, both read |
-| Writes | the service response, which a receiver has to answer with |
+| Writes | the service response, and the status a failure has to answer with |
 | Version | `0.x`, so names and shapes may still change |
 | Tested against | the OpenTelemetry .NET exporter, the OpenTelemetry Collector and the OpenTelemetry JS SDK |
 
@@ -89,6 +89,40 @@ response.PartialSuccess = new ExportLogsPartialSuccess
 };
 ```
 
+## Refusing an export
+
+The protocol requires the body of every `4xx` and `5xx` to be a `google.rpc.Status` describing the
+problem, in the same content type as the request. An empty body, or a shape of your own invention,
+leaves the sender with only the status code to act on.
+
+```csharp
+var status = new Status
+{
+    Code = (int)StatusCode.InvalidArgument,
+    Message = "the export did not decode",
+};
+
+context.Response.StatusCode = 400;
+if (isJson)
+{
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(status.ToJson());
+}
+else
+{
+    context.Response.ContentType = "application/x-protobuf";
+    await context.Response.Body.WriteAsync(status.ToProtobuf());
+}
+```
+
+The code does not decide whether the sender retries: the protocol does that from the HTTP status, so a
+`400` is never retried and a `429` or `503` is retried after a backoff. The status is what makes the
+failure legible to whoever has to fix it.
+
+`Code` is a plain integer because the field is an `int32`, so a value outside `StatusCode` is legal. The
+upstream `details` field is not modelled: it is a repeated `google.protobuf.Any`, and a repeated field
+with no entries is identical on the wire to one left out.
+
 ## Reading values
 
 `AnyValue` is a `oneof`, so `Kind` says which member is set. Reading a member without checking `Kind`
@@ -126,7 +160,8 @@ rather than through `Flags` directly.
   reaches this package.
 - **No semantic conventions.** `exception.type` and friends are attributes like any other. What a
   consumer does with them is not the protocol's business, and so not this package's.
-- **No encoder for exports.** It writes the service response, because a receiver has to, and nothing else.
+- **No encoder for exports.** It writes what a receiver has to answer with, the service response and the
+  failure status, and nothing else. Encoding an export is a sender's job.
 
 ## Limits and strictness
 
