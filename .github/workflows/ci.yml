@@ -49,6 +49,7 @@ jobs:
           git log --pretty=%B "$range" > /tmp/commit-messages.txt
           wc -l /tmp/commit-messages.txt
       - run: bash .github/scan/scan.sh /tmp/commit-messages.txt
+      - run: bash .github/scan/test-scan.sh
 
   pack:
     runs-on: ubuntu-latest

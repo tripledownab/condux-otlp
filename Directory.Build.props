@@ -8,8 +8,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Authors>Condux</Authors>
-    <Company>Condux</Company>
+    <Authors>Triple Down AB</Authors>
+    <Company>Triple Down AB</Company>
+    <Copyright>Copyright 2026 Triple Down AB, Skeppargatan 55, 114 59 Stockholm, Sweden, security@condux.ai</Copyright>
     <PackageProjectUrl>https://github.com/tripledownab/condux-otlp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/tripledownab/condux-otlp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -21,6 +22,13 @@
     <!-- The icon has to travel inside the package: PackageIconUrl is deprecated and nuget.org will not
          render it. Packed from here so every package in the repository carries the same mark. -->
     <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Visible="false" />
+    <!-- The licence names the manufacturer, with its address and contact, and has to travel with the
+         package for that to reach anyone who installs it. -->
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" Visible="false" />
+    <!-- The readme sends a reader to NOTICE, so the package carries it as well. -->
+    <None Include="$(MSBuildThisFileDirectory)NOTICE" Pack="true" PackagePath="\" Visible="false" />
+    <!-- Where to report a vulnerability, which the regulation wants findable from the product itself. -->
+    <None Include="$(MSBuildThisFileDirectory)SECURITY.md" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 
 </Project>
