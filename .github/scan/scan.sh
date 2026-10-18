@@ -36,6 +36,40 @@ if [ ${#extra[@]} -gt 0 ]; then
   done
 fi
 
+# Exact strings that may appear despite a forbidden entry, read the same way. allowed.txt says why each.
+allowed=()
+while IFS= read -r exempt; do
+  [ -z "$exempt" ] && continue
+  case "$exempt" in \#*) continue ;; esac
+  allowed+=("$exempt")
+done < "$here/allowed.txt"
+
+# Prints a hit's text with every allowed string removed where it stands alone: at the start of the text or
+# after a space, an opening bracket or a quote, and at the end of the text or before a space, a closing
+# bracket, a quote, a comma, a semicolon or a full stop that ends the sentence. Anywhere else it is part of
+# a longer address, host name or URL, which is a different string, and it is left for the pattern to find.
+without_allowed() {
+  local text="${1#*:[0-9]*:}" exempt rest before after out first
+  for exempt in "${allowed[@]}"; do
+    rest="$text" out="" first=1
+    while [[ "$rest" == *"$exempt"* ]]; do
+      before="${rest%%"$exempt"*}"
+      after="${rest#*"$exempt"}"
+      out="$out$before"
+      if { { [ -z "$before" ] && [ "$first" = 1 ]; } || [[ "${before: -1}" == [[:space:]\<\(\[\"\'\`] ]]; } &&
+        { [ -z "$after" ] || [[ "${after:0:1}" == [[:space:]\>\)\]\"\'\`,\;\<] ]] ||
+          [[ "$after" == . || "$after" == .[[:space:]]* ]]; }; then
+        :
+      else
+        out="$out$exempt"
+      fi
+      rest="$after" first=0
+    done
+    text="$out$rest"
+  done
+  printf '%s' "$text"
+}
+
 status=0
 while IFS= read -r pattern; do
   [ -z "$pattern" ] && continue
@@ -44,8 +78,22 @@ while IFS= read -r pattern; do
   hits="$(git -C "$root" grep -n --text --fixed-strings -e "$pattern" \
     -- . ':!.github/scan/forbidden.txt' || true)"
 
+  # A file's name publishes as surely as its contents.
+  names="$(git -C "$root" ls-files | grep --fixed-strings -e "$pattern" | sed 's/^/file name: /' || true)"
+  hits="$hits${hits:+${names:+$'\n'}}$names"
+
   if [ ${#extra[@]} -gt 0 ]; then
-    hits="$hits$(grep -nH --text --fixed-strings -e "$pattern" "${extra[@]}" || true)"
+    found="$(grep -nH --text --fixed-strings -e "$pattern" "${extra[@]}" || true)"
+    hits="$hits${hits:+${found:+$'\n'}}$found"
+  fi
+
+  # A hit stands if the pattern is still in its text once the allowed strings standing alone are removed.
+  if [ -n "$hits" ] && [ ${#allowed[@]} -gt 0 ]; then
+    kept=""
+    while IFS= read -r line; do
+      case "$(without_allowed "$line")" in *"$pattern"*) kept="$kept$line"$'\n' ;; esac
+    done <<< "$hits"
+    hits="${kept%$'\n'}"
   fi
 
   if [ -n "$hits" ]; then

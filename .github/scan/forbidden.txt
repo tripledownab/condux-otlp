@@ -6,6 +6,7 @@
 # that fires on a legitimate file is a pattern somebody switches off.
 #
 # When something here fires, fix the source line. Never soften the entry to make a build pass.
+# A string that has to appear despite an entry goes in allowed.txt, exactly and with its reason.
 
 # The package shares a name with the maintainer's other work, so these two shapes distinguish a paste
 # from that work from a legitimate use of the name. The first fired on this scan's very first run, on an

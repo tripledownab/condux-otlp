@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The package names its maker, Triple Down AB, with a postal address and the address for vulnerability
+  reports, security@condux.ai. They are in the package's authors and copyright fields and on the first
+  line of `LICENSE`, and the package now carries `LICENSE`, `NOTICE` and `SECURITY.md`, which says how to
+  report a vulnerability. No code change.
+
 ## 0.2.0
 
 - `Status` encodes to protobuf or JSON, so a receiver can refuse an export the way the protocol

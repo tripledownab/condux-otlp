@@ -1,0 +1,9 @@
+# Exact strings exempt from forbidden.txt, each with the reason it has to appear. The scan removes these
+# from a line before it looks for a forbidden string, so anything else on the same line still fails, and
+# so does an entry inside a longer address, host name or URL. Keep this to strings that are required, and say
+# why: an entry here is a hole in the gate.
+
+# The maker's contact for vulnerability reports. Regulation (EU) 2024/2847 has a manufacturer put an email
+# address or other digital contact with the product (Article 13(16)) and designate a single point of contact
+# for reporting vulnerabilities (Article 13(17)), so the package names the maker's one address.
+security@condux.ai
