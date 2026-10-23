@@ -8,23 +8,24 @@ namespace Condux.Otlp.FixtureCapture;
 /// Stands in for an OTLP receiver and writes each export it is sent to a file.
 /// </summary>
 /// <remarks>
-/// The first segment of the request path chooses the fixture, so it does not matter whether an exporter
-/// appends the signal path itself. Every export is answered with a success response encoded by the
-/// library under test, which makes a capture run a live check that a real exporter accepts what the
-/// library writes.
+/// The fixture is chosen by the request's route: its first path segment, which names the producer, and
+/// its last, which names the signal (<c>logs</c> or <c>traces</c>). Keying on both is needed because the
+/// collector sends both signals under one producer segment. Every export is answered with a success
+/// response encoded by the library under test, which makes a capture run a live check that a real
+/// exporter accepts what the library writes.
 /// </remarks>
 internal sealed class FixtureRecorder : IDisposable
 {
     private readonly HttpListener _listener = new();
     private readonly string _directory;
-    private readonly IReadOnlyDictionary<string, string> _fixturesBySegment;
+    private readonly IReadOnlyDictionary<string, string> _fixturesByRoute;
     private readonly ConcurrentDictionary<string, string> _captured = new();
 
-    internal FixtureRecorder(string prefix, string directory, IReadOnlyDictionary<string, string> fixturesBySegment)
+    internal FixtureRecorder(string prefix, string directory, IReadOnlyDictionary<string, string> fixturesByRoute)
     {
         _listener.Prefixes.Add(prefix);
         _directory = directory;
-        _fixturesBySegment = fixturesBySegment;
+        _fixturesByRoute = fixturesByRoute;
     }
 
     internal void Start()
@@ -39,7 +40,7 @@ internal sealed class FixtureRecorder : IDisposable
         var deadline = DateTime.UtcNow + timeout;
         while (DateTime.UtcNow < deadline)
         {
-            if (_captured.Count == _fixturesBySegment.Count)
+            if (_captured.Count == _fixturesByRoute.Count)
             {
                 return true;
             }
@@ -51,7 +52,7 @@ internal sealed class FixtureRecorder : IDisposable
     }
 
     internal IEnumerable<string> Missing()
-        => _fixturesBySegment.Values.Where(name => !_captured.ContainsKey(name));
+        => _fixturesByRoute.Values.Where(name => !_captured.ContainsKey(name));
 
     public void Dispose() => ((IDisposable)_listener).Dispose();
 
@@ -81,9 +82,11 @@ internal sealed class FixtureRecorder : IDisposable
     {
         using var body = new MemoryStream();
         await ReadPayloadAsync(context.Request, body);
-        var segment = (context.Request.Url?.Segments.ElementAtOrDefault(1) ?? "").Trim('/');
+        var segments = context.Request.Url?.Segments ?? [];
+        var signal = (segments.LastOrDefault() ?? "").Trim('/');
+        var route = $"{(segments.ElementAtOrDefault(1) ?? "").Trim('/')}/{signal}";
 
-        if (_fixturesBySegment.TryGetValue(segment, out var fixture))
+        if (_fixturesByRoute.TryGetValue(route, out var fixture))
         {
             var path = Path.Combine(_directory, fixture);
             await File.WriteAllBytesAsync(path, body.ToArray());
@@ -95,7 +98,7 @@ internal sealed class FixtureRecorder : IDisposable
             Console.WriteLine($"ignored an export on an unmapped path: {context.Request.Url}");
         }
 
-        await RespondAsync(context);
+        await RespondAsync(context, signal);
     }
 
     /// <summary>
@@ -130,14 +133,20 @@ internal sealed class FixtureRecorder : IDisposable
     }
 
     /// <summary>
-    /// Answers with an empty success. The protocol requires the response to carry the same content type
-    /// the request did, so the encoding is chosen from the request rather than fixed.
+    /// Answers with an empty success of the signal's own response type. The protocol requires the response
+    /// to carry the same content type the request did, so the encoding is chosen from the request rather
+    /// than fixed.
     /// </summary>
-    private static async Task RespondAsync(HttpListenerContext context)
+    private static async Task RespondAsync(HttpListenerContext context, string signal)
     {
         var isJson = (context.Request.ContentType ?? "").Contains("json", StringComparison.OrdinalIgnoreCase);
-        var response = new ExportLogsServiceResponse();
-        var payload = isJson ? System.Text.Encoding.UTF8.GetBytes(response.ToJson()) : response.ToProtobuf();
+        var payload = (signal, isJson) switch
+        {
+            ("traces", true) => System.Text.Encoding.UTF8.GetBytes(new ExportTraceServiceResponse().ToJson()),
+            ("traces", false) => new ExportTraceServiceResponse().ToProtobuf(),
+            (_, true) => System.Text.Encoding.UTF8.GetBytes(new ExportLogsServiceResponse().ToJson()),
+            (_, false) => new ExportLogsServiceResponse().ToProtobuf(),
+        };
 
         context.Response.StatusCode = 200;
         context.Response.ContentType = isJson ? "application/json" : "application/x-protobuf";

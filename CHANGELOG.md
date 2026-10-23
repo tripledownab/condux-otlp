@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Traces.** `OtlpTraces.ParseProtobuf` and `OtlpTraces.ParseJson` read an OTLP traces export in either
+  encoding, into message types for `ExportTraceServiceRequest` and everything it reaches. A span's status
+  is `SpanStatus` with `SpanStatusCode`, named for the span because `Status` is already the
+  `google.rpc.Status` a failed export is answered with. `ExportTraceServiceResponse` encodes the answer in
+  both encodings.
+- `ParseJson`, for either signal, returns a failed result instead of throwing when a JSON string is not
+  valid text: invalid UTF-8, or an escape for an unpaired surrogate. The parser accepts such a document
+  and the failure surfaced only when a string was read, so 0.2.0 broke its own promise not to throw.
+- **Breaking:** `OtlpReadResult` is now `OtlpReadResult<TExport>`, since a parse returns a different
+  export per signal. Code that holds a result in a `var` is unaffected; code that names the type adds
+  `<ExportLogsServiceRequest>`.
+- The fixture capture tool records traces from the same three producers as logs, and maps
+  `host.docker.internal` explicitly, which Docker Engine on Linux does not define by itself.
 - The package names its maker, Triple Down AB, with a postal address and the address for vulnerability
   reports, security@condux.ai. They are in the package's authors and copyright fields and on the first
   line of `LICENSE`, and the package now carries `LICENSE`, `NOTICE` and `SECURITY.md`, which says how to

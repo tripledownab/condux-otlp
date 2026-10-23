@@ -44,6 +44,58 @@ internal static class MessageDump
         return text.ToString();
     }
 
+    internal static string Render(ExportTraceServiceRequest request)
+    {
+        var text = new StringBuilder();
+        foreach (var resourceSpans in request.ResourceSpans)
+        {
+            text.AppendLine($"resourceSpans schemaUrl={resourceSpans.SchemaUrl}");
+            if (resourceSpans.Resource is not null)
+            {
+                text.AppendLine($"  resource dropped={resourceSpans.Resource.DroppedAttributesCount}");
+                Attributes(text, resourceSpans.Resource.Attributes, "    ");
+            }
+
+            foreach (var scopeSpans in resourceSpans.ScopeSpans)
+            {
+                text.AppendLine($"  scopeSpans schemaUrl={scopeSpans.SchemaUrl}");
+                if (scopeSpans.Scope is not null)
+                {
+                    text.AppendLine($"    scope name={scopeSpans.Scope.Name} version={scopeSpans.Scope.Version} dropped={scopeSpans.Scope.DroppedAttributesCount}");
+                    Attributes(text, scopeSpans.Scope.Attributes, "      ");
+                }
+
+                foreach (var span in scopeSpans.Spans)
+                {
+                    RenderSpan(text, span);
+                }
+            }
+        }
+
+        return text.ToString();
+    }
+
+    private static void RenderSpan(StringBuilder text, Span span)
+    {
+        text.AppendLine($"    span name={span.Name} kind={(int)span.Kind} start={span.StartTimeUnixNano} end={span.EndTimeUnixNano}");
+        text.AppendLine($"      traceId={Convert.ToHexString(span.TraceId)} spanId={Convert.ToHexString(span.SpanId)} parent={Convert.ToHexString(span.ParentSpanId)}");
+        text.AppendLine($"      traceState={span.TraceState} flags={span.Flags} traceFlags={span.TraceFlags}");
+        text.AppendLine($"      dropped attributes={span.DroppedAttributesCount} events={span.DroppedEventsCount} links={span.DroppedLinksCount}");
+        text.AppendLine(span.Status is null ? "      status=<none>" : $"      status code={(int)span.Status.Code} message={span.Status.Message}");
+        Attributes(text, span.Attributes, "      ");
+        foreach (var spanEvent in span.Events)
+        {
+            text.AppendLine($"      event name={spanEvent.Name} time={spanEvent.TimeUnixNano} dropped={spanEvent.DroppedAttributesCount}");
+            Attributes(text, spanEvent.Attributes, "        ");
+        }
+
+        foreach (var link in span.Links)
+        {
+            text.AppendLine($"      link traceId={Convert.ToHexString(link.TraceId)} spanId={Convert.ToHexString(link.SpanId)} traceState={link.TraceState} flags={link.Flags} dropped={link.DroppedAttributesCount}");
+            Attributes(text, link.Attributes, "        ");
+        }
+    }
+
     private static void Record(StringBuilder text, LogRecord record)
     {
         text.AppendLine($"    record time={record.TimeUnixNano} observed={record.ObservedTimeUnixNano}");

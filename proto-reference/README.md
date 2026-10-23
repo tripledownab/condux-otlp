@@ -13,6 +13,8 @@ keeping the upstream directory layout:
 |---|---|
 | `collector/logs/v1/logs_service.proto` | `ExportLogsServiceRequest`, `ExportLogsServiceResponse`, `ExportLogsPartialSuccess` |
 | `logs/v1/logs.proto` | `ResourceLogs`, `ScopeLogs`, `LogRecord`, `SeverityNumber` |
+| `collector/trace/v1/trace_service.proto` | `ExportTraceServiceRequest`, `ExportTraceServiceResponse`, `ExportTracePartialSuccess` |
+| `trace/v1/trace.proto` | `ResourceSpans`, `ScopeSpans`, `Span` (with `SpanKind`, `Event` and `Link`), `Status` (as `SpanStatus`) |
 | `common/v1/common.proto` | `AnyValue`, `ArrayValue`, `KeyValueList`, `KeyValue`, `InstrumentationScope` |
 | `resource/v1/resource.proto` | `Resource` |
 

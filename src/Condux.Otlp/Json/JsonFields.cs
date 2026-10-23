@@ -15,9 +15,24 @@ internal delegate bool JsonMessageReader<TMessage>(JsonElement element, out TMes
 /// </remarks>
 internal static class JsonFields
 {
-    /// <summary>Finds a member that carries a value. JSON null means the default, so it counts as absent.</summary>
+    /// <summary>
+    /// Finds a member that carries a value. JSON null means the default, so it counts as absent. The
+    /// lookup compares this name against every member name in the object, so a member whose escaped name
+    /// is not valid text throws here even when it is not the one asked for. Only that case is translated:
+    /// the runtime throws the same exception when the parent is not an object, which would be a missing
+    /// check in a caller.
+    /// </summary>
     internal static bool TryGet(JsonElement parent, string name, out JsonElement value)
-        => parent.TryGetProperty(name, out value) && value.ValueKind != JsonValueKind.Null;
+    {
+        try
+        {
+            return parent.TryGetProperty(name, out value) && value.ValueKind != JsonValueKind.Null;
+        }
+        catch (InvalidOperationException invalid) when (parent.ValueKind == JsonValueKind.Object)
+        {
+            throw new InvalidJsonTextException(invalid);
+        }
+    }
 
     internal static bool TryString(JsonElement parent, string name, out string value)
     {

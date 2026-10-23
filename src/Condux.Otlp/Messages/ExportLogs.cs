@@ -30,10 +30,13 @@ public sealed class ExportLogsServiceResponse
     public ExportLogsPartialSuccess? PartialSuccess { get; set; }
 
     /// <summary>Encodes the response as binary protobuf, for a request that arrived as protobuf.</summary>
-    public byte[] ToProtobuf() => ExportLogsResponseEncoder.ToProtobuf(this);
+    public byte[] ToProtobuf() => ExportResponseEncoder.ToProtobuf(ToParts());
 
     /// <summary>Encodes the response as OTLP JSON, for a request that arrived as JSON.</summary>
-    public string ToJson() => ExportLogsResponseEncoder.ToJson(this);
+    public string ToJson() => ExportResponseEncoder.ToJson(ToParts(), ExportResponseEncoder.RejectedLogRecordsName);
+
+    private (long Rejected, string ErrorMessage)? ToParts()
+        => PartialSuccess is { } partial ? (partial.RejectedLogRecords, partial.ErrorMessage) : null;
 }
 
 /// <summary>

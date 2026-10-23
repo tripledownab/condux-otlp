@@ -5,8 +5,8 @@
     <AssemblyName>Condux.Otlp</AssemblyName>
     <RootNamespace>Condux.Otlp</RootNamespace>
     <PackageId>Condux.Otlp</PackageId>
-    <Description>Read OpenTelemetry Protocol (OTLP) logs payloads in .NET. Both the binary protobuf and the JSON encoding, decoded by hand with no package dependencies at all.</Description>
-    <PackageTags>opentelemetry;otlp;protobuf;logs;observability</PackageTags>
+    <Description>Read OpenTelemetry Protocol (OTLP) logs and traces payloads in .NET. Both the binary protobuf and the JSON encoding, decoded by hand with no package dependencies at all.</Description>
+    <PackageTags>opentelemetry;otlp;protobuf;logs;traces;observability</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IsPackable>true</IsPackable>
     <!-- The point of the package is that this list stays empty. Everything it needs is in the base class

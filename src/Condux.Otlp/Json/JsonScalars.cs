@@ -26,8 +26,7 @@ internal static class JsonScalars
             return false;
         }
 
-        // Null comes back only for a JSON null, which the check above has already ruled out.
-        value = element.GetString()!;
+        value = ToText(element);
         return true;
     }
 
@@ -43,7 +42,7 @@ internal static class JsonScalars
         return element.ValueKind switch
         {
             JsonValueKind.Number => element.TryGetUInt64(out value),
-            JsonValueKind.String => ulong.TryParse(element.GetString(), NumberStyles.None, Invariant, out value),
+            JsonValueKind.String => ulong.TryParse(ToText(element), NumberStyles.None, Invariant, out value),
             _ => false,
         };
     }
@@ -54,7 +53,7 @@ internal static class JsonScalars
         return element.ValueKind switch
         {
             JsonValueKind.Number => element.TryGetInt64(out value),
-            JsonValueKind.String => long.TryParse(element.GetString(), NumberStyles.Integer, Invariant, out value),
+            JsonValueKind.String => long.TryParse(ToText(element), NumberStyles.Integer, Invariant, out value),
             _ => false,
         };
     }
@@ -65,7 +64,7 @@ internal static class JsonScalars
         return element.ValueKind switch
         {
             JsonValueKind.Number => element.TryGetUInt32(out value),
-            JsonValueKind.String => uint.TryParse(element.GetString(), NumberStyles.None, Invariant, out value),
+            JsonValueKind.String => uint.TryParse(ToText(element), NumberStyles.None, Invariant, out value),
             _ => false,
         };
     }
@@ -76,7 +75,7 @@ internal static class JsonScalars
         return element.ValueKind switch
         {
             JsonValueKind.Number => element.TryGetInt32(out value),
-            JsonValueKind.String => int.TryParse(element.GetString(), NumberStyles.Integer, Invariant, out value),
+            JsonValueKind.String => int.TryParse(ToText(element), NumberStyles.Integer, Invariant, out value),
             _ => false,
         };
     }
@@ -89,7 +88,7 @@ internal static class JsonScalars
             JsonValueKind.Number => element.TryGetDouble(out value),
             // JSON has no literal for NaN or either infinity, so the mapping carries those three as the
             // strings the invariant culture parses them from.
-            JsonValueKind.String => double.TryParse(element.GetString(), NumberStyles.Float, Invariant, out value),
+            JsonValueKind.String => double.TryParse(ToText(element), NumberStyles.Float, Invariant, out value),
             _ => false,
         };
     }
@@ -118,7 +117,7 @@ internal static class JsonScalars
             return false;
         }
 
-        var text = element.GetString()!.AsSpan();
+        var text = ToText(element).AsSpan();
         if (text.Length == 0)
         {
             return true;
@@ -142,6 +141,26 @@ internal static class JsonScalars
 
         value = bytes;
         return true;
+    }
+
+    /// <summary>
+    /// Reads a string element's text, which every read of a string goes through. Null comes back only
+    /// for a JSON null, and every caller has already checked the element is a string. The parser does not
+    /// validate a string's contents, so text that is not valid is found here, and is reported as such
+    /// rather than as the <see cref="InvalidOperationException"/> the runtime throws. The filter matters:
+    /// the runtime throws the same exception for a value of the wrong kind, which would be a missing check
+    /// in a caller, and that must surface as the bug it is.
+    /// </summary>
+    private static string ToText(JsonElement element)
+    {
+        try
+        {
+            return element.GetString()!;
+        }
+        catch (InvalidOperationException invalid) when (element.ValueKind == JsonValueKind.String)
+        {
+            throw new InvalidJsonTextException(invalid);
+        }
     }
 
     private static bool TryNibble(char character, out int value)

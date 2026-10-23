@@ -7,9 +7,12 @@ namespace Condux.Otlp;
 internal static class Limits
 {
     /// <summary>
-    /// How deeply nested messages may go before a payload is rejected. The logs tree is six levels deep,
-    /// but <c>AnyValue</c> nests without limit through <c>ArrayValue</c> and <c>KeyValueList</c>, so a
-    /// crafted payload could otherwise recurse until the stack is exhausted.
+    /// How deeply nested messages may go before a payload is rejected. The fixed part of either export is
+    /// shallow (a span's event, link or status is one level below the span), but <c>AnyValue</c> nests
+    /// without limit through <c>ArrayValue</c> and <c>KeyValueList</c>, so a crafted payload could
+    /// otherwise recurse until the stack is exhausted. Protobuf counts nested messages and JSON counts the
+    /// document's own depth, and a value costs more levels in JSON, so the two encodings of one deeply
+    /// nested value can land on different sides of the bound.
     /// </summary>
     internal const int MaxDepth = 64;
 
