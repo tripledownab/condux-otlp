@@ -1,7 +1,7 @@
 # Condux.Otlp
 
-Read OpenTelemetry Protocol (OTLP) **logs** payloads in .NET, in both encodings the protocol defines, with
-no package dependencies at all.
+Read OpenTelemetry Protocol (OTLP) **logs** and **traces** payloads in .NET, in both encodings the
+protocol defines, with no package dependencies at all.
 
 ```
 dotnet add package Condux.Otlp
@@ -13,7 +13,7 @@ Targets `net8.0`, `net9.0` and `net10.0`. Apache-2.0.
 
 | | |
 |---|---|
-| Signals | logs. Traces and metrics are not implemented |
+| Signals | logs and traces. Metrics are not implemented |
 | Encodings | binary protobuf and JSON, both read |
 | Writes | the service response, and the status a failure has to answer with |
 | Version | `0.x`, so names and shapes may still change |
@@ -62,10 +62,30 @@ foreach (var record in scopeLogs.LogRecords)
 }
 ```
 
+A traces export reads the same way, through `OtlpTraces`:
+
+```csharp
+var result = OtlpTraces.ParseJson(body);
+
+if (!result.IsSuccess)
+{
+    return Results.BadRequest(result.Error);
+}
+
+foreach (var resourceSpans in result.Value.ResourceSpans)
+foreach (var scopeSpans in resourceSpans.ScopeSpans)
+foreach (var span in scopeSpans.Spans)
+{
+    Console.WriteLine($"{span.Name} {span.Status?.Code}");
+}
+```
+
 Both encodings produce the same types, so code downstream of the parse does not know which arrived.
 
-Neither method throws. A payload that does not decode comes back as a failed result carrying a short
-description of what was wrong with its shape, never a copy of the payload.
+Neither method throws on a payload, however malformed, including JSON whose strings are not valid text.
+A payload that does not decode comes back as a failed result carrying a short description of what was
+wrong with its shape, never a copy of the payload. Passing `null` is a programming error and throws
+`ArgumentNullException`.
 
 ## Answering an export
 
@@ -88,6 +108,9 @@ response.PartialSuccess = new ExportLogsPartialSuccess
     ErrorMessage = "over the configured ingest limit",
 };
 ```
+
+A traces export is answered with `ExportTraceServiceResponse`, whose partial success counts
+`RejectedSpans`. The two responses are otherwise identical on the wire.
 
 ## Refusing an export
 
@@ -138,6 +161,9 @@ using OtlpStatus = Condux.Otlp.Status;
 using OtlpStatusCode = Condux.Otlp.StatusCode;
 ```
 
+A span's own status, `opentelemetry.proto.trace.v1.Status` in the protocol, is `SpanStatus` here, with
+its code in `SpanStatusCode`, so it cannot be confused with the failure status above.
+
 ## Reading values
 
 `AnyValue` is a `oneof`, so `Kind` says which member is set. Reading a member without checking `Kind`
@@ -161,18 +187,22 @@ a nested map, is the consumer's decision, so the package does not make one.
 `SeverityNumber` is an ordered scale with four numbers per named level, so `>= SeverityNumber.Error`
 covers every error severity. A sender may use a number this enum does not name, and the decoder keeps it.
 
-`TraceId` and `SpanId` are the raw bytes: sixteen and eight when present, empty when the record belongs to
-no trace. Read trace flags through `LogRecord.TraceFlags`, which masks off the bits the protocol reserves,
-rather than through `Flags` directly.
+`TraceId` and `SpanId` are the raw bytes as sent, empty when the record belongs to no trace. The protocol
+says they are sixteen and eight bytes and that any other length is invalid, but the decoder does not
+enforce it, so check the length before indexing into one. Read trace flags through `TraceFlags`, which
+masks off every other bit, rather than through `Flags` directly. A span's `ParentSpanId` is empty when the
+span is a root.
+
+`SpanKind` and `SpanStatusCode` keep a number the enum does not name, like `SeverityNumber`.
 
 ## What it does not do
 
-- **Logs only.** Traces and metrics are not implemented.
-- **No transport.** Decompressing the body, checking content types and routing `/v1/logs` are the host's
-  job. Whether a payload arrives compressed depends on the producer, and the defaults differ: the
-  OpenTelemetry Collector's `otlphttp` exporter gzips, while the OpenTelemetry .NET and JS SDK exporters
-  send the bytes as they are. A receiver has to honour `Content-Encoding` either way, before the payload
-  reaches this package.
+- **Logs and traces only.** Metrics are not implemented.
+- **No transport.** Decompressing the body, checking content types and routing `/v1/logs` and
+  `/v1/traces` are the host's job. Whether a payload arrives compressed depends on the producer, and the
+  defaults differ: the OpenTelemetry Collector's `otlphttp` exporter gzips, while the OpenTelemetry .NET
+  and JS SDK exporters send the bytes as they are. A receiver has to honour `Content-Encoding` either
+  way, before the payload reaches this package.
 - **No semantic conventions.** `exception.type` and friends are attributes like any other. What a
   consumer does with them is not the protocol's business, and so not this package's.
 - **No encoder for exports.** It writes what a receiver has to answer with, the service response and the
@@ -191,8 +221,11 @@ Decoding hostile input is the normal case for a receiver, so the decoder is deli
 - A protobuf string must be valid UTF-8. One that is not is rejected rather than repaired, because
   substituting replacement characters hands the caller data the sender never sent.
 - The group wire type is rejected. proto3 removed it and no OTLP message uses it.
-- In JSON, member names are lowerCamelCase only and enum values must be integers. Both are what the
-  encoding requires; neither is a choice this package made.
+- In JSON, member names are lowerCamelCase only, and an enum given by its name is refused. Both follow
+  what the encoding requires. An enum written as a number in quotes is read as that number, a leniency
+  that a stricter reading would turn into a rejected export.
+- A singular message field that appears twice in one message keeps the second occurrence, where protobuf
+  would merge the two. No conforming exporter writes one twice.
 
 ## Versions
 
@@ -214,11 +247,12 @@ encoder: a decoder checked against its own writer shares its assumptions and can
 implementations produced them, the OpenTelemetry .NET exporter, the OpenTelemetry Collector and the
 OpenTelemetry JS SDK.
 
-Two of them are a single export relayed by the collector in both encodings. Those decode to the same
-message, which is what pins the one rule the encodings disagree about: OTLP writes trace and span ids as
-hex where the standard protobuf JSON mapping would use base64. The JS export is the second, independent
-producer of the JSON encoding, so the strict reading of member names and enum values above rests on more
-than one implementation's habits.
+For each signal, two of them are a single export relayed by the collector in both encodings. Those decode
+to the same message, which is what pins the one rule the encodings disagree about: OTLP writes trace and
+span ids as hex where the standard protobuf JSON mapping would use base64. A span carries more of those
+ids than a log record does, its parent's and a link's among them. The JS exports are the second,
+independent producer of the JSON encoding, so the strict reading of member names and enum values above
+rests on more than one implementation's habits.
 
 A separate test decodes a hand-built payload that sets every field of every message, in both encodings.
 The captured fixtures cannot do that job, because a real exporter emits only what it has, and a field it

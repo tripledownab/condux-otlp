@@ -5,8 +5,8 @@ consuming the package; this is written for someone changing it.
 
 ## What this is
 
-A reader for OpenTelemetry Protocol **logs** payloads, in both encodings the protocol defines, with no
-package dependencies. `src/Condux.Otlp` decodes the wire format and nothing else: no transport, no
+A reader for OpenTelemetry Protocol **logs** and **traces** payloads, in both encodings the protocol
+defines, with no package dependencies. `src/Condux.Otlp` decodes the wire format and nothing else: no transport, no
 semantic conventions, no opinion about how a value should be shown. That restraint is the product, so a
 change that adds policy to the library needs an argument, not just a use case.
 
@@ -39,7 +39,7 @@ the package's one claim made enforceable; do not weaken it to land a change.
 
 ```
 src/Condux.Otlp/
-  OtlpLogs.cs          the two entry points; OtlpReadResult.cs is what they return
+  OtlpLogs.cs          the entry points for logs, OtlpTraces.cs for traces; OtlpReadResult.cs is what they return
   Limits.cs            the decoding bounds, and why each is the number it is
   Messages/            the protocol's types, one file per group, plus the response encoder
   Protobuf/            ProtobufReader (primitives) -> MessageDecoder (the loop) -> the per-message decoders

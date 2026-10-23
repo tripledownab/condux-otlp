@@ -24,7 +24,11 @@ exporters:
 
 service:
   pipelines:
+    # No batch processor in either pipeline: each export should leave immediately, so a capture run does
+    # not hang.
     logs:
       receivers: [otlp]
-      # No batch processor: each export should leave immediately, so a capture run does not hang.
+      exporters: [otlphttp/proto, otlphttp/json]
+    traces:
+      receivers: [otlp]
       exporters: [otlphttp/proto, otlphttp/json]

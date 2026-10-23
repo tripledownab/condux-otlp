@@ -17,7 +17,7 @@ internal static class SingleRecord
         => Wire.Bytes(ResourceLogsField, Wire.Bytes(ScopeLogsField, Wire.Bytes(LogRecordsField, logRecord)));
 
     /// <summary>Parses a JSON export carrying the one record given, without asserting the outcome.</summary>
-    internal static OtlpReadResult ParseJson(string logRecord)
+    internal static OtlpReadResult<ExportLogsServiceRequest> ParseJson(string logRecord)
         => OtlpLogs.ParseJson($$"""
             {"resourceLogs":[{"scopeLogs":[{"logRecords":[{{logRecord}}]}]}]}
             """);

@@ -20,7 +20,11 @@ trap cleanup EXIT
 cleanup
 
 echo "starting $image"
+# The collector reaches the recorder on the host as host.docker.internal. Docker Desktop defines that name
+# by itself; Docker Engine on Linux does not, and the collector's exports then fail with no fixture
+# written, so the name is mapped explicitly.
 docker run -d --name "$container" \
+  --add-host=host.docker.internal:host-gateway \
   -p 127.0.0.1:4318:4318 \
   -v "$here/collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
   "$image" >/dev/null
@@ -39,6 +43,7 @@ collector_version="$(docker exec "$container" /otelcol-contrib --version 2>/dev/
 exporter_version="$(grep -o 'OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="[^"]*"' \
   "$here/Condux.Otlp.FixtureCapture/Condux.Otlp.FixtureCapture.csproj" | cut -d'"' -f3)"
 js_version="$(grep -o '"@opentelemetry/sdk-logs": "[^"]*"' "$here/js-emitter/package.json" | cut -d'"' -f4)"
+js_trace_version="$(grep -o '"@opentelemetry/sdk-trace-base": "[^"]*"' "$here/js-emitter/package.json" | cut -d'"' -f4)"
 
 cat > "$fixtures/PROVENANCE.md" <<EOF
 # Where these fixtures came from
@@ -53,17 +58,23 @@ assumptions and cannot disprove them.
 | \`collector-logs.protobuf.bin\` | $collector_version, \`otlphttp\` encoding \`proto\` |
 | \`collector-logs.json\` | the same collector and the same records, \`otlphttp\` encoding \`json\` |
 | \`js-sdk-logs.json\` | OpenTelemetry JS SDK $js_version, whose HTTP exporter writes JSON directly |
+| \`dotnet-sdk-traces.protobuf.bin\` | OpenTelemetry .NET exporter $exporter_version, straight to the recorder |
+| \`collector-traces.protobuf.bin\` | $collector_version, \`otlphttp\` encoding \`proto\` |
+| \`collector-traces.json\` | the same collector and the same spans, \`otlphttp\` encoding \`json\` |
+| \`js-sdk-traces.json\` | OpenTelemetry JS SDK $js_trace_version, whose HTTP exporter writes JSON directly |
 
-The two collector fixtures are one export seen in both encodings. They decode to equal messages, and the
-test that asserts it is what pins the hex trace id rule that the encodings disagree about.
+Each pair of collector fixtures is one export seen in both encodings. They decode to equal messages, and
+the tests that assert it are what pin the hex id rule that the encodings disagree about. For traces that
+rule covers the parent span id and a link's ids as well as the trace and span id.
 
-The JS fixture is a separate export from an implementation that shares no code with the collector. Where
+The JS fixtures are separate exports from an implementation that shares no code with the collector. Where
 the two JSON producers agree, on lowerCamelCase member names and integer enum values, the agreement is
 the encoding rather than one implementation's habit, which is what the decoder's strictness rests on.
 
 Every payload here is the export itself. Compression belongs to the transport and the producers differ
-on it, the collector gzipping where the two SDK exporters do not, so the recorder undoes it before
-writing.
+on it, the collector gzipping where the SDK exporters do not, so the recorder undoes it before writing.
+The stack traces the trace fixtures carry have their source paths rewritten by the producers, so a
+capture is identical wherever it runs.
 EOF
 
 echo "wrote $fixtures/PROVENANCE.md"

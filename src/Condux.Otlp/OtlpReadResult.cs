@@ -9,16 +9,18 @@ namespace Condux.Otlp;
 /// Parsing hostile input is an expected part of running a receiver, not an exceptional one, so a payload
 /// that does not decode comes back as a value rather than a thrown exception.
 /// </remarks>
-public sealed class OtlpReadResult
+/// <typeparam name="TExport">The export request the payload carries, one per signal.</typeparam>
+public sealed class OtlpReadResult<TExport>
+    where TExport : class
 {
-    private OtlpReadResult(ExportLogsServiceRequest? value, string? error)
+    private OtlpReadResult(TExport? value, string? error)
     {
         Value = value;
         Error = error;
     }
 
     /// <summary>The decoded export, or null when the parse failed.</summary>
-    public ExportLogsServiceRequest? Value { get; }
+    public TExport? Value { get; }
 
     /// <summary>
     /// Why the parse failed, or null when it succeeded. The text says what was wrong with the shape of
@@ -31,7 +33,7 @@ public sealed class OtlpReadResult
     [MemberNotNullWhen(false, nameof(Error))]
     public bool IsSuccess => Value is not null;
 
-    internal static OtlpReadResult Ok(ExportLogsServiceRequest value) => new(value, null);
+    internal static OtlpReadResult<TExport> Ok(TExport value) => new(value, null);
 
-    internal static OtlpReadResult Failed(string error) => new(null, error);
+    internal static OtlpReadResult<TExport> Failed(string error) => new(null, error);
 }

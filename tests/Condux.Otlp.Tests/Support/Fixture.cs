@@ -22,6 +22,18 @@ internal static class Fixture
     /// </summary>
     internal const string JsSdkJson = "js-sdk-logs.json";
 
+    /// <summary>One traces export straight from the OpenTelemetry .NET SDK's own exporter.</summary>
+    internal const string DotnetSdkTracesProtobuf = "dotnet-sdk-traces.protobuf.bin";
+
+    /// <summary>The same spans, relayed by the OpenTelemetry Collector as protobuf.</summary>
+    internal const string CollectorTracesProtobuf = "collector-traces.protobuf.bin";
+
+    /// <summary>The same spans again, relayed by the same collector as JSON.</summary>
+    internal const string CollectorTracesJson = "collector-traces.json";
+
+    /// <summary>A separate traces export written by the OpenTelemetry JS SDK's JSON exporter.</summary>
+    internal const string JsSdkTracesJson = "js-sdk-traces.json";
+
     internal static byte[] Bytes(string name)
         => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
 }
