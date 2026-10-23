@@ -20,6 +20,19 @@ public class InvalidTextTests
         AssertRefusedAsText(OtlpTraces.ParseJson(LoneSurrogateTraces));
     }
 
+    /// <summary>
+    /// A bytes value is a base64 string, and decoding it unescapes the string first, so it is text that
+    /// has to be valid like any other. Here in a log body and in a span attribute.
+    /// </summary>
+    [Fact]
+    public void RefusesAnEscapedLoneSurrogateInABytesValueInsteadOfThrowing()
+    {
+        AssertRefusedAsText(OtlpLogs.ParseJson(
+            """{"resourceLogs":[{"scopeLogs":[{"logRecords":[{"body":{"bytesValue":"\uD800"}}]}]}]}"""));
+        AssertRefusedAsText(OtlpTraces.ParseJson(
+            """{"resourceSpans":[{"scopeSpans":[{"spans":[{"attributes":[{"key":"k","value":{"bytesValue":"\uDC00"}}]}]}]}]}"""));
+    }
+
     /// <summary>A byte that is not valid UTF-8, inside a string the decoder reads.</summary>
     [Fact]
     public void RefusesInvalidUtf8InAStringInsteadOfThrowing()

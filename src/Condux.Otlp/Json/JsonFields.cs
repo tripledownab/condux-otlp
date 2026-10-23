@@ -17,8 +17,8 @@ internal static class JsonFields
 {
     /// <summary>
     /// Finds a member that carries a value. JSON null means the default, so it counts as absent. The
-    /// lookup compares this name against every member name in the object, so a member whose escaped name
-    /// is not valid text throws here even when it is not the one asked for. Only that case is translated:
+    /// lookup compares this name against other member names in the object, so a member whose escaped name
+    /// is not valid text can throw here even when it is not the one asked for. Only that case is translated:
     /// the runtime throws the same exception when the parent is not an object, which would be a missing
     /// check in a caller.
     /// </summary>
