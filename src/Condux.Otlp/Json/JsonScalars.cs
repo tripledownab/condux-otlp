@@ -96,7 +96,13 @@ internal static class JsonScalars
     internal static bool TryBase64Bytes(JsonElement element, out byte[] value)
     {
         value = [];
-        if (element.ValueKind != JsonValueKind.String || !element.TryGetBytesFromBase64(out var decoded))
+        if (element.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        var (isBase64, decoded) = Unescape(element, text => (text.TryGetBytesFromBase64(out var bytes), bytes));
+        if (!isBase64)
         {
             return false;
         }
@@ -143,19 +149,22 @@ internal static class JsonScalars
         return true;
     }
 
+    /// <summary>Reads a string element's text. Null comes back only for a JSON null, which callers rule out.</summary>
+    private static string ToText(JsonElement element) => Unescape(element, text => text.GetString()!);
+
     /// <summary>
-    /// Reads a string element's text, which every read of a string goes through. Null comes back only
-    /// for a JSON null, and every caller has already checked the element is a string. The parser does not
-    /// validate a string's contents, so text that is not valid is found here, and is reported as such
-    /// rather than as the <see cref="InvalidOperationException"/> the runtime throws. The filter matters:
-    /// the runtime throws the same exception for a value of the wrong kind, which would be a missing check
-    /// in a caller, and that must surface as the bug it is.
+    /// Runs a read that unescapes a string element, which every such read in this file goes through: the
+    /// text itself, and the base64 behind a bytes value. The parser does not validate a string's contents,
+    /// so text that is not valid is found here, and is reported as such rather than as the
+    /// <see cref="InvalidOperationException"/> the runtime throws. The filter matters: the runtime throws
+    /// the same exception for a value of the wrong kind, which would be a missing check in a caller, and
+    /// that must surface as the bug it is.
     /// </summary>
-    private static string ToText(JsonElement element)
+    private static TValue Unescape<TValue>(JsonElement element, Func<JsonElement, TValue> read)
     {
         try
         {
-            return element.GetString()!;
+            return read(element);
         }
         catch (InvalidOperationException invalid) when (element.ValueKind == JsonValueKind.String)
         {

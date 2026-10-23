@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `ParseJson`, for either signal, now also returns a failed result for a `bytesValue` whose string is
+  not valid text. 0.3.0 handled the strings read as text; a bytes value is decoded from base64 by a
+  different read, which still threw.
+
 ## 0.3.0
 
 - **Traces.** `OtlpTraces.ParseProtobuf` and `OtlpTraces.ParseJson` read an OTLP traces export in either
