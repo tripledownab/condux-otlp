@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - **Traces.** `OtlpTraces.ParseProtobuf` and `OtlpTraces.ParseJson` read an OTLP traces export in either
   encoding, into message types for `ExportTraceServiceRequest` and everything it reaches. A span's status
